@@ -40,7 +40,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 		srv.vm.hostname = "server1-ansible"
 		srv.vm.network 'private_network', ip: "10.255.255.201", virtualbox__intnet: "mgmt"
 		srv.ssh.insert_key = true
-		srv.vm.network "forwarded_port", guest: 443, host: 8443
 		srv.vm.provision "file", source: "./known_hosts", destination: "/home/vagrant/.ssh/known_hosts"
 		srv.vm.provision "file", source: "./id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
 		srv.vm.provision "file", source: "./id_rsa.pub", destination: "/home/vagrant/.ssh/id_rsa.pub"
