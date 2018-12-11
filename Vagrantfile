@@ -24,7 +24,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
             # Dataplane ports (em3)
             vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "mgmt"
-
+            (4..7).each do |int_id|
+			  vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "seg_#{int_id}"
+			end
         end
 
 
