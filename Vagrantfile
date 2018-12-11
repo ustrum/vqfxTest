@@ -23,13 +23,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "reserved-bridge"
 
             # Dataplane ports (em3)
-            vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "server_vqfx#{id}"
+            vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "mgmt"
 
-            # (em4, em5)
-            (1..2).each do |seg_id|
-                vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "seg#{seg_id}"
-            end
-            vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "seg_test"
         end
 
 
@@ -41,18 +36,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	
     srv_name  = ( "srv1" ).to_sym
 	config.vm.define srv_name do |srv|
-		srv.vm.box = "ubuntu/xenial64"
-		srv.vm.hostname = "server1-ubuntu"
-		srv.vm.network 'private_network', ip: "10.255.255.201", virtualbox__intnet: "seg_test"
+		srv.vm.box = "centos/7"
+		srv.vm.hostname = "server1-ansible"
+		srv.vm.network 'private_network', ip: "10.255.255.201", virtualbox__intnet: "mgmt"
 		srv.ssh.insert_key = true
+		srv.vm.network "forwarded_port", guest: 443, host: 8443
+		srv.vm.provision "file", source: "./known_hosts", destination: "/home/vagrant/.ssh/known_hosts"
 		srv.vm.provision "file", source: "./id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
 		srv.vm.provision "file", source: "./id_rsa.pub", destination: "/home/vagrant/.ssh/id_rsa.pub"
-		srv.vm.provision "shell",
-		   inline: "sudo route add -net 10.10.0.0 netmask 255.255.0.0 gw 10.255.255.1"
-		srv.vm.provision "shell",
-		   inline: "chmod 400 ./.ssh/id_rsa"
-		srv.vm.provision "shell",
-		   inline: "chmod 400 ./.ssh/id_rsa.pub"
+		srv.vm.provision :shell, path: "bootstrap.sh"
 	end
     ##############################
     ## Box provisioning    #######
@@ -61,7 +53,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.vm.provision "ansible" do |ansible|
             ansible.groups = {
                 "vqfx10k" => ["vqfx1", "vqfx2" ],
-                "server"  => ["server1", "server2" ],
+                "server"  => ["srv1"],
                 "all:children" => ["vqfx10k", "server"]
             }
             ansible.playbook = "provisioning/deploy-config.p.yaml"
