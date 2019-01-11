@@ -6,3 +6,11 @@ host:
 interfaces:
     - name: em3
       ip: 10.255.255.1
+    - name: em4
+      ip: 10.255.4.1
+    - name: em5
+      ip: 10.255.5.1
+    - name: em6
+      ip: 10.255.6.1
+    - name: em7
+      ip: 10.255.4.1
