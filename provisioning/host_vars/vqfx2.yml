@@ -7,10 +7,6 @@ interfaces:
     - name: em3
       ip: 10.255.255.2
     - name: em4
-      ip: 10.255.4.2
     - name: em5
-      ip: 10.255.5.2
     - name: em6
-      ip: 10.255.6.2
     - name: em7
-      ip: 10.255.4.2

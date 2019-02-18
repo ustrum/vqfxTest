@@ -50,7 +50,11 @@ interfaces {
     {{ interface.name }} {
         unit 0 {
             family inet {
-                address {{ interface.ip }}/24;
+			        {% if 'ip' in interface %}
+				    address {{ interface.ip }}/24;
+					{% else %}
+					dhcp;
+					{% endif %}
             }
         }
     }
