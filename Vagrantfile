@@ -2,6 +2,9 @@
 # vi: set ft=ruby :
 
 VAGRANTFILE_API_VERSION = "2"
+
+UUID = "OGVIFL"
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     config.ssh.insert_key = false
@@ -10,41 +13,42 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         re_name  = ( "vqfx" + id.to_s ).to_sym
         pfe_name  = ( "vqfx" + id.to_s + "_pfe").to_sym
 
+        ##############################
+        ## Packet Forwarding Engine ##
+        ##############################
+        config.vm.define pfe_name do |vqfxpfe|
+            vqfxpfe.ssh.insert_key = false
+            vqfxpfe.vm.box = 'juniper/vqfx10k-pfe'
+
+            # DO NOT REMOVE / NO VMtools installed
+            vqfxpfe.vm.synced_folder '.', '/vagrant', disabled: true
+            vqfxpfe.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "#{UUID}_vqfx_internal_#{id}"
+
+            # In case you have limited resources, you can limit the CPU used per vqfx-pfe VM, usually 50% is good
+            # vqfxpfe.vm.provider "virtualbox" do |v|
+            #    v.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]
+            # end
+        end
+
         ##########################
         ## Routing Engine  #######
         ##########################
         config.vm.define re_name do |vqfx|
-            vqfx.vm.hostname = "vqfxre#{id}"
+            vqfx.vm.hostname = "vqfx#{id}"
             vqfx.vm.box = 'juniper/vqfx10k-re'
+
             # DO NOT REMOVE / NO VMtools installed
             vqfx.vm.synced_folder '.', '/vagrant', disabled: true
 
-            # Management port (first interface is used by vagrant (em0, hidden here) / second interface is used to connect to the PFE VM (em1))
-            vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "RE_TO_PFE_#{id}"
+            # Management port
+            vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "#{UUID}_vqfx_internal_#{id}"
+            vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "#{UUID}_reserved-bridge"
 
-            # third interface is a management port not used (em2) -> We will use it to connect our "mgmt station"
-            vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "mgmt"
-            
-			# Data ports -> Virtualbox only support 8 interfaces by default, 3 mgmt defined + this 5. xe-0/0/[0-4]. Each one will sit on its own vnet
-			(1..5).each do |int_id|
-			    vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "seg_#{id}_#{int_id}"
-			end
+            # Dataplane ports
+            (1..6).each do |seg_id|
+               vqfx.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "#{UUID}_seg#{seg_id}"
+            end
         end
-        ###############################
-        ## Packet Forwarding Engine  ##
-        ###############################
-        config.vm.define pfe_name do |vqfxpfe|
-            vqfxpfe.vm.box = 'juniper/vqfx10k-pfe'
-            # DO NOT REMOVE / NO VMtools installed
-            vqfxpfe.vm.synced_folder '.', '/vagrant', disabled: true
-
-            # Management port (first interface is used by vagrant (em0) / second interface is used to connect to the RE VM (em1))
-            vqfxpfe.vm.network 'private_network', auto_config: false, nic_type: '82540EM', virtualbox__intnet: "RE_TO_PFE_#{id}"
-
-            # A maximum of 2 interfaces are supported:
-        end
-
-    end
 	
 	##########################
 	## Server          #######
@@ -54,7 +58,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	config.vm.define srv_name do |srv|
 		srv.vm.box = "centos/7"
 		srv.vm.hostname = "#{srv_name}"
-		srv.vm.network 'private_network', ip: "10.255.255.201", virtualbox__intnet: "mgmt"
+		srv.vm.network 'private_network', ip: "10.255.255.201", virtualbox__intnet: "#{UUID}_seg#{seg_id}"
 		srv.ssh.insert_key = true
 		srv.vm.provision "file", source: "./known_hosts", destination: "/home/vagrant/.ssh/known_hosts"
 		srv.vm.provision "file", source: "./id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
