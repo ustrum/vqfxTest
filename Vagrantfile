@@ -59,7 +59,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	config.vm.define srv_name do |srv|
 		srv.vm.box = "centos/7"
 		srv.vm.hostname = "#{srv_name}"
-		srv.vm.network 'private_network', ip: "10.255.255.201", virtualbox__intnet: "#{UUID}_seg#{seg_id}"
+		srv.vm.network 'private_network', ip: "10.255.255.201", virtualbox__intnet: "#{UUID}_seg1"
 		srv.ssh.insert_key = true
 		srv.vm.provision "file", source: "./known_hosts", destination: "/home/vagrant/.ssh/known_hosts"
 		srv.vm.provision "file", source: "./id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
